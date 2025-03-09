@@ -39,6 +39,7 @@ class patrol_group():
         self.units = army
         self.direction = 1
         self.bounce = False
+        self.shoots = []
 
     def move(self,window1):
         if self.bounce:
@@ -76,8 +77,12 @@ class patrol_group():
             if chance == 1:
                 bullet1 = enemy_bullet(i.shoot_sprite, i.x + i.sprite.get_width() / 2,
                                  i.y, i.shoot_speed)
-                i.shoots.append(bullet1)
-                print("BOOM!")
+                self.shoots.append(bullet1)
+
+    def update_shoots(self):
+        for i in self.shoots:
+            if i.lives <= 0:
+                self.shoots.remove(i)
 
 
 class starship():
@@ -141,6 +146,7 @@ class enemy_bullet():
         self.rect = pygame.Rect(self.x-4, self.y, self.sprite.get_rect().width, self.sprite.get_rect().height)
         self.lives = 1
 
+
     def draw(self,window1):
         window1.screen.blit(self.sprite,self.rect)
 
@@ -148,12 +154,10 @@ class enemy_bullet():
         self.y += self.speed
         self.rect.y = self.y
 
-    def collisions(self,army):
-        if army is not None:
-            for i in army.units:
-                if self.rect.colliderect(i.rect):
-                    self.lives -= 1
-                    i.lives -= 1
+    def collisions(self,player1):
+        if self.rect.colliderect(player1.rect):
+            self.lives -= 1
+            player1.lives -= 1
 
 class bullet():
     def __init__(self, sprite, x, y, speed):
@@ -179,7 +183,35 @@ class bullet():
                     i.lives -= 1
 
 
+class energy_bar():
+    def __init__(self, x,y,width, height, lives):
+        self.width = width
+        self.height = height
+        self.x = x
+        self.y = y
+        self.color = GREEN
+        self.rect = pygame.Rect(x,y,width,height)
+        self.initial_lives = lives
+        self.bar_slice = self.width / self.initial_lives
 
+    def generate_lines(self, window1):
+        i = 7
+        while i < self.width:
+            rect1 = pygame.Rect(self.x+i, self.y, 5, self.height)
+            pygame.draw.rect(window1.screen, TEAL, rect1)
+            i += 12
+
+    def update_bar(self, lives):
+        if lives == self.initial_lives:
+            self.color = GREEN
+        elif lives < self.initial_lives:
+            self.color = YELLOW
+            if lives <= self.initial_lives / 2:
+                self.color = ORANGE
+            if lives <= self.initial_lives / 3:
+                self.color = RED
+        self.width = lives * self.bar_slice
+        self.rect = pygame.Rect(self.x, self.y, self.width, self.height)
 
 
 
@@ -189,17 +221,28 @@ class text_display():
         self.game = game
         self.color_front = color_front
         self.color_back = color_back
+        self.energy_rectangle = energy_bar(650,540,120,30,self.game.player.lives)
+
 
     def draw(self):
         pygame.draw.rect(self.window.screen, self.color_back, (10, 520, 780, 70))
         pygame.draw.rect(self.window.screen, self.color_front, (20, 530, 760, 50))
         display_points = "Points: " + str(self.game.points)
         display_wave = "Wave: " + str(self.game.wave)
+        display_energy = "Energy:"
+
         font = pygame.font.SysFont(None, 50)
         img1 = font.render(display_points, True, WHITE)
         img2 = font.render(display_wave, True, WHITE)
-        self.window.screen.blit(img1, (30, 540))
-        self.window.screen.blit(img2, (600, 540))
+        img3 = font.render(display_energy, True, WHITE)
+        self.window.screen.blit(img2, (30, 540))
+        self.window.screen.blit(img1, (200, 540))
+        self.window.screen.blit(img3, (510, 540))
+        pygame.draw.rect(self.window.screen, self.energy_rectangle.color, self.energy_rectangle.rect)
+        self.energy_rectangle.update_bar(self.game.player.lives)
+        self.energy_rectangle.generate_lines(self.window)
+
+
 
 class announce():
     def __init__(self, window1, color_front, alpha):
@@ -244,20 +287,21 @@ class announce():
 
 
 class game():
-    def __init__(self, player1,fps, window1):
+    def __init__(self, fps, window1):
         self.points = 0
         self.wave = 0
-        self.player = player1
+        self.player = starship(["nave","weapon1"],3,368,450,8,800, 8,0,0)
         self.clock = pygame.time.Clock()
         self.fps = fps
         self.army = None
         # self.waves =  [[[1,1,1,1,1,1],[1,1,1,1,1],[1,1,1,1,1,1]],[[1,1,1],[1,1],[1]]]
-        self.waves = [[[1,1,1,1,1,1,1,1,1,1], [1,1,1,1,1,1,1,1],[1,1,1,1,1,1], [1,1,1,1]], [[1, 1, 1], [1, 1], [1]]]
+        self.waves = [[[1,1], [1,1],[1,1,1], [1]], [[1, 1, 1], [1, 1], [1]]]
         self.window = window1
         self.announce = announce(self.window, TEAL, 200)
         self.showing_menu = True
         self.pause = False
         self.restart = False
+        self.game_over = False
 
     def control_input_player(self):
         keys = pygame.key.get_pressed()
@@ -277,11 +321,7 @@ class game():
                     sys.exit()
             else:
                 if self.restart:
-                    self.points = 0
-                    self.wave = 0
-                    self.showing_menu = True
-                    self.pause = False
-                    self.restart = False
+                    self.restart_game()
                 elif self.pause:
                     self.pause = False
                 elif event1.key == K_SPACE and current_time - self.player.time_last_shoot >= self.player.time_between_shoots and self.army is not None:
@@ -289,6 +329,16 @@ class game():
                                      self.player.y, self.player.shoot_speed)
                     self.player.shoots.append(bullet1)
                     self.player.time_last_shoot = current_time
+
+    def restart_game(self):
+        self.army = None
+        self.points = 0
+        self.wave = 0
+        self.showing_menu = True
+        self.pause = False
+        self.restart = False
+        if self.player.lives <= 0:
+            self.player = starship(["nave", "weapon1"], 3, 368, 450, 8, 800, 8, 0, 0)
 
     def get_new_wave(self):
         try:
@@ -352,7 +402,14 @@ class game():
             else:
                 if self.army is None:
                     self.get_new_wave()
-        self.player.draw(self.window)
+        if self.player.lives > 0:
+            self.player.draw(self.window)
+        else:
+            self.game_over = True
+            if self.game_over:
+                self.restart = True
+                self.pause = True
+                self.announce.draw_text(["YOU DIED", "GAME OVER", "..."], False)
         if self.army is not None:
             self.army.draw(self.window)
             self.army.move(self.window)
@@ -360,13 +417,20 @@ class game():
                 for b in a.shoots:
                     b.draw(self.window)
                     b.move()
-        for i in self.player.shoots:
-            i.draw(self.window)
-            i.move()
-            i.collisions(self.army)
-        self.player.update_shoots()
+            for i in self.army.shoots:
+                i.draw(self.window)
+                i.move()
+                i.collisions(self.player)
+            self.army.update_shoots()
+
         if self.army is not None:
+            for i in self.player.shoots:
+                i.draw(self.window)
+                i.move()
+                i.collisions(self.army)
+            self.player.update_shoots()
             self.points += self.army.check_casualties()
+
 
     def show_menu(self):
         self.announce.draw_text(["1.- Play", "2.- Credits", "3.- Exit to DOS"], True)

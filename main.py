@@ -6,12 +6,12 @@ from colors import *
 
 pygame.init()
 main_window = window(800,600,"Arcade")
-player1 = starship(["nave","weapon1"],1,368,450,8,800, 8,0,0)
 
-control_game = game(player1,30, main_window)
+
+control_game = game(30, main_window)
 tdisplay = text_display(main_window,control_game,TEAL,TEAL2)
 
-star_background = stars([[GREEN,2],[YELLOW,3],[BLUE,1]], main_window)
+star_background = stars([[TEAL,2],[GREEN,3],[BLUE,1]], main_window)
 
 while True: # main game loop
     #contador
