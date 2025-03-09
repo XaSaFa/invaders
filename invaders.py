@@ -1,16 +1,9 @@
 import pygame, sys
 from pygame.locals import *
 import random
-import enemics
+import classes
+from colors import *
 
-BLACK = (0, 0, 0)
-RED = (255, 0, 0)
-WHITE = (255,255,255)
-YELLOW = (255,255,0)
-GREEN = (0,255,0)
-BLUE = (0,0,255)
-TEAL = (0,128,128)
-TEAL2 = (0,170,170)
 AMPLADA = 800
 ALCADA = 600
 
@@ -26,7 +19,7 @@ velocitat_nau = 8
 
 # carrego les imatges
 nave = pygame.image.load('assets/nave.png')
-ufo = pygame.image.load('assets/ufo.png')
+ufo = pygame.image.load('assets/ufo1.png')
 
 #calculem la posició inicial de la nau a la pantalla
 posicio_inicial_x = AMPLADA/2 - nave.get_rect().width / 2
@@ -50,7 +43,7 @@ for i in onada:
     print(i)
     comptador = 0
     for j in i:
-        enemic = enemics.enemy(j)
+        enemic = classes.enemy(j)
         ufo_rect = enemic.rectangle
         print(ufo_rect)
         ufo_rect.x = comptador * 100
