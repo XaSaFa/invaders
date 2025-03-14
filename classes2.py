@@ -299,9 +299,11 @@ class game():
         self.window = window1
         self.announce = announce(self.window, TEAL, 200)
         self.showing_menu = True
+        self.showing_message = False
         self.pause = False
         self.restart = False
         self.game_over = False
+        self.initial_menu = True
 
     def control_input_player(self):
         keys = pygame.key.get_pressed()
@@ -310,25 +312,9 @@ class game():
         if keys[K_d] or keys[K_RIGHT]:
             self.player.move_right(self.window)
 
-    def control_inputs(self, event1):
-        if event1.type == KEYDOWN:
-            current_time = pygame.time.get_ticks()
-            if self.showing_menu:
-                if event1.key == K_1:
-                    self.showing_menu = False
-                if event1.key == K_3:
-                    pygame.quit()
-                    sys.exit()
-            else:
-                if self.restart:
-                    self.restart_game()
-                elif self.pause:
-                    self.pause = False
-                elif event1.key == K_SPACE and current_time - self.player.time_last_shoot >= self.player.time_between_shoots and self.army is not None:
-                    bullet1 = bullet(self.player.shoot_sprite, self.player.x + self.player.sprite.get_width() / 2,
-                                     self.player.y, self.player.shoot_speed)
-                    self.player.shoots.append(bullet1)
-                    self.player.time_last_shoot = current_time
+
+
+
 
     def restart_game(self):
         self.army = None
@@ -387,10 +373,59 @@ class game():
             self.pause = True
             self.announce.draw_text(["YOU ACHIEVED", "VICTORY", "CONGRATULATIONS!"], False)
 
+    def control_inputs(self, event1):
+        if event1.type == KEYDOWN:
+            current_time = pygame.time.get_ticks()
+            # SHOW MENU
+            if self.showing_menu:
+                if event1.key == K_1:
+                    self.showing_menu = False
+                if event1.key == K_3:
+                    pygame.quit()
+                    sys.exit()
+            # WAVE ANNOUNCE
+            elif self.showing_message:
+                self.show_message()
+                if event1.key == K_SPACE:
+                    self.showing_message = False
+            # GAME OVER
+            elif self.game_over:
+                self.show_game_over()
+                if event1.key == K_SPACE:
+                    self.showing_message = False
+                    self.showing_menu = True
+            # PLAYING
+            else:
+                if self.restart:
+                    self.restart_game()
+                elif event1.key == K_SPACE and current_time - self.player.time_last_shoot >= self.player.time_between_shoots and self.army is not None:
+                    bullet1 = bullet(self.player.shoot_sprite, self.player.x + self.player.sprite.get_width() / 2,
+                                     self.player.y, self.player.shoot_speed)
+                    self.player.shoots.append(bullet1)
+                    self.player.time_last_shoot = current_time
 
     def update_game(self):
+        # Si estem al menu inici mostrar menu
+        # Si no, Si estem mostrant una pantalla d'avís mostrar-la
+        # Si no hi ha exercit, carregar la següent onada
+        # Si el jugador no té vides mostrar game over
+        # Si hi ha exercit carregat:
+        # - dibuixar player
+        # - moure enemics
+        # - dibuixar enemics
+        # - moure bales enemics
+        # - dibuixar bales player
+        # - moure bales player
+        # - moure bales enemics
+        # - detectar colisions bales enemics
+        # - detectar colisions bales player
+        # - detectar colisions naus amb player
+
+        # if self.army is None:
+        #     self.get_new_wave()
+
         if self.showing_menu:
-            self.show_menu()
+            # self.show_menu()
             self.pause = True
         else:
             if self.army is not None:
@@ -432,8 +467,21 @@ class game():
             self.points += self.army.check_casualties()
 
 
-    def show_menu(self):
+    def show_menu(self, event1):
         self.announce.draw_text(["1.- Play", "2.- Credits", "3.- Exit to DOS"], True)
+        if event1.type == KEYDOWN:
+            if self.showing_menu:
+                if event1.key == K_1:
+                    self.showing_menu = False
+                if event1.key == K_3:
+                    pygame.quit()
+                    sys.exit()
+
+    def show_message(self):
+        self.announce.draw_text(["STARTING", "WAVE "+ str(self.wave), "GET READY!"], False)
+
+    def show_game_over(self):
+        self.announce.draw_text(["YOU DIED", "GAME OVER", "..."], False)
 
 
 
@@ -481,12 +529,6 @@ class star_field():
             if s.y > self.window.height:
                 self.stars.remove(s)
 
-
-
-
-
-
-
 class window():
     def __init__(self, w1, h1, caption):
         pygame.display.set_caption(caption)
@@ -496,3 +538,32 @@ class window():
 
     def clean_screen(self):
         self.screen.fill(BLACK)
+
+class arcade():
+
+    def __init__(self):
+        pygame.init()
+        self.main_window = window(800, 600, "Arcade")
+        self.control_game = game(30, self.main_window)
+        self.tdisplay = text_display(self.main_window, self.control_game, TEAL, TEAL2)
+        self.star_background = stars([[TEAL, 2], [GREEN, 3], [BLUE, 1]], self.main_window)
+
+    def main_loop(self):
+        while True:  # main game loop
+            current_time = pygame.time.get_ticks()
+            self.main_window.clean_screen()
+            for event in pygame.event.get():
+                if event.type == QUIT:
+                    pygame.quit()
+                    sys.exit()
+                if event.type == KEYDOWN:
+                    self.control_game.control_inputs(event)
+
+
+            self.control_game.update_game()
+            self.control_game.control_input_player()
+            self.star_background.update_stars()
+            self.tdisplay.draw()
+
+            pygame.display.update()
+            self.control_game.clock.tick(self.control_game.fps)

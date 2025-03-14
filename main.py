@@ -1,7 +1,7 @@
 import pygame, sys
 from pygame.locals import *
 import random
-from classes import *
+from classes2 import *
 from colors import *
 
 pygame.init()
