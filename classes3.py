@@ -1,11 +1,61 @@
-
-import pygame, sys, random
+import pygame, sys, random, csv
 from pygame import *
 from colors import *
 from time import sleep
 
+ROWS = 9
+MAX_COLS = 12
+TILE_SIZE = 64
+
+# gets the army from the level editor csv
+class Army:
+    def __init__(self, level):
+        self.units = []
+        self.world_data = []
+        for row in range(ROWS):
+            r = [-1] * MAX_COLS
+            self.world_data.append(r)
+        with open(f'assets/levels/level{level}_data.csv', newline='') as csvfile:
+            reader = csv.reader(csvfile, delimiter=',')
+            for y, row in enumerate(reader):
+                for x, tile in enumerate(row):
+                    if int(tile) >= 0:
+                        ufo1 = Character(1, 16 +  x * TILE_SIZE, y * TILE_SIZE, 2)
+                        ufo1.add_animation("assets/enemies/ufo_idle.png", 0, 9, 150, 64, 64, 0)
+                        self.units.append(ufo1)
+
+    def draw(self):
+        for i in self.units:
+            i.draw()
 
 
+class Patrol(Army):
+    def __init__(self, level):
+        super().__init__(level)
+        self.direction = 1
+        self.bounce = False
+        self.shoots = []
+
+    def move(self):
+        if self.bounce:
+            self.direction *= -1
+            self.bounce = False
+            self.go_down()
+        else:
+            for i in self.units:
+                i.x += i.speed * self.direction
+                i.rect.x = i.x
+                if i.x <= 0 or i.x + i.rect.width > screen.get_width():
+                    self.bounce = True
+
+    def go_down(self):
+        for i in self.units:
+            i.y += 20
+            i.rect.y = i.y
+
+    def update(self):
+        self.move()
+        self.draw()
 
 # Class character is a character of the game
 class Character:
@@ -75,6 +125,8 @@ class Character:
     def get_frame(self):
         self.animations[self.animation_index].get_frame()
 
+
+
 # Class for the protagonist of the game, inherits from Character Class
 class Protagonist(Character):
     firing_rate = 0
@@ -106,6 +158,10 @@ class Protagonist(Character):
     def weapon_is_ready(self):
         return current_time - self.last_shoot >= self.firing_rate
 
+    def init_game(self):
+        starship.add_animation("assets/protagonist/starship_idle.png", 0, 4, 200, 50, 68, 0)
+        starship.set_stats(300, 6)
+        starship.move(368, 530)
 
 # Return the frame to show of a character in a given moment.
 class Animation:
@@ -194,6 +250,9 @@ class Game:
         self.level = 0
         self.protagonist = protagonist
         self.control_panel = ControlPanel(TEAL, TEAL2, self.protagonist.lives, self.protagonist.firing_rate)
+        self.enemies = Army(self.level)
+        self.patrol = Patrol(self.level)
+
 
     # draw elements to the screen
     def draw_screen(self):
@@ -208,6 +267,7 @@ class Game:
                 self.star_background.update_stars()
             else:
                 screen.blit(pygame.image.load(self.background),(0,0))
+            self.patrol.update()
             self.protagonist.update()
             self.control_panel.draw(self.points, self.level, self.protagonist.lives, self.protagonist.last_shoot)
         elif self.state == 4:
@@ -251,10 +311,10 @@ class Game:
                 self.protagonist.move_left()
             if keys[K_RIGHT]:
                 self.protagonist.move_right()
-            if keys[K_UP]:
-                self.protagonist.move_up()
-            if keys[K_DOWN]:
-                self.protagonist.move_down()
+            # if keys[K_UP]:
+            #     self.protagonist.move_up()
+            # if keys[K_DOWN]:
+            #     self.protagonist.move_down()
 
 
 
@@ -340,11 +400,17 @@ class Bullet:
         self.x = x
         self.y = y
         self.speed = speed
-        self.rect = pygame.Rect(self.x-4, self.y, self.sprite.get_rect().width, self.sprite.get_rect().height)
+        self.rect = pygame.Rect(self.x-8, self.y, self.sprite.get_rect().width, self.sprite.get_rect().height)
         self.lives = damage
+        self.animation = Animation("assets/protagonist/bullet1.png",8,22,0,4,100,0)
+
+
+    # Sets a new animation speed for the character
+    def set_animation_speed(self, new_speed):
+        self.animation.frame_time = new_speed
 
     def draw(self):
-        screen.blit(self.sprite,self.rect)
+        screen.blit(self.animation.get_frame(), (self.x-4, self.y))
 
     def move(self):
         self.y -= self.speed
@@ -404,9 +470,7 @@ ufo.add_animation("assets/enemies/ufo_idle.png",0,9,150,64,64, 0)
 
 
 starship = Protagonist(1,0,0,5)
-starship.add_animation("assets/protagonist/starship_idle.png",0,4,200,50,68, 0)
-starship.set_stats(300,6)
-starship.move(368,450)
+starship.init_game()
 
 # Game
 game = Game(60,starship)
