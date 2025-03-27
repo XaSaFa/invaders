@@ -77,6 +77,8 @@ class Character:
         self.x = x
         self.y = y
         self.speed = speed
+        self.image = 0
+        self.mask = 0
 
     # Sets a new animation speed for the character
     def set_animation_speed(self,new_speed):
@@ -85,7 +87,8 @@ class Character:
     # draw the character in the screen
     def draw(self):
         screen.blit(self.animations[self.animation_index].get_frame(), (self.x, self.y))
-
+        self.image = self.animations[self.animation_index].get_frame().convert_alpha()
+        self.mask = pygame.mask.from_surface(self.image)
 
 
     # moves to the left
@@ -337,7 +340,8 @@ class Bullet:
         self.rect = pygame.Rect(self.x-8, self.y, self.sprite.get_rect().width, self.sprite.get_rect().height)
         self.lives = damage
         self.animation = Animation("assets/protagonist/bullet1.png",8,22,0,4,100,0)
-
+        self.image = 0
+        self.mask = 0
 
     # Sets a new animation speed for the character
     def set_animation_speed(self, new_speed):
@@ -345,6 +349,8 @@ class Bullet:
 
     def draw(self):
         screen.blit(self.animation.get_frame(), (self.x-4, self.y))
+        self.image = self.animations[self.animation_index].get_frame().convert_alpha()
+        self.mask = pygame.mask.from_surface(self.image)
 
     def move(self):
         self.y -= self.speed
