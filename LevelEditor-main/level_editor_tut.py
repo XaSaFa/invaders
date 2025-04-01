@@ -9,8 +9,8 @@ clock = pygame.time.Clock()
 FPS = 60
 
 #game window
-SCREEN_WIDTH = 800
-SCREEN_HEIGHT = 640
+SCREEN_WIDTH = 1280
+SCREEN_HEIGHT = 720
 LOWER_MARGIN = 100
 SIDE_MARGIN = 300
 
@@ -19,10 +19,10 @@ pygame.display.set_caption('Level Editor')
 
 
 #define game variables
-ROWS = 9
-MAX_COLS = 12
+ROWS = 22
+MAX_COLS = 40
 TILE_SIZE = SCREEN_HEIGHT // ROWS
-TILE_TYPES = 1
+TILE_TYPES = 21
 level = 0
 current_tile = 0
 scroll_left = False
@@ -39,7 +39,7 @@ scroll_speed = 1
 #store tiles in a list
 img_list = []
 for x in range(TILE_TYPES):
-	img = pygame.image.load(f'img/enemies/{x}.png').convert_alpha()
+	img = pygame.image.load(f'img/tile/{x}.png').convert_alpha()
 	img = pygame.transform.scale(img, (TILE_SIZE, TILE_SIZE))
 	img_list.append(img)
 
