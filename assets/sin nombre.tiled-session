@@ -1,0 +1,41 @@
+{
+    "Map/SizeTest": {
+        "height": 4300,
+        "width": 2
+    },
+    "activeFile": "C:/Users/kalza/Documents/GitHub/invaders/sin nombre.json",
+    "expandedProjectPaths": [
+    ],
+    "fileStates": {
+        "": {
+            "scaleInEditor": 1
+        },
+        "#1": {
+            "dynamicWrapping": true
+        },
+        "C:/Users/kalza/Documents/GitHub/invaders/sin nombre.json": {
+            "scale": 1,
+            "selectedLayer": 1,
+            "viewCenter": {
+                "x": 270,
+                "y": 162
+            }
+        },
+        "C:/Users/kalza/Documents/GitHub/invaders/sin nombre.json#1": {
+            "scaleInDock": 1
+        }
+    },
+    "last.imagePath": "C:/Users/kalza/Documents/GitHub/invaders/LevelEditor-main/img/tile",
+    "map.height": 19,
+    "map.lastUsedFormat": "json",
+    "map.width": 25,
+    "openFiles": [
+        "C:/Users/kalza/Documents/GitHub/invaders/sin nombre.json"
+    ],
+    "project": "sin nombre.tiled-project",
+    "recentFiles": [
+        "C:/Users/kalza/Documents/GitHub/invaders/sin nombre.json"
+    ],
+    "tileset.embedInMap": true,
+    "tileset.type": 1
+}

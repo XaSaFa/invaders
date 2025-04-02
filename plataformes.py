@@ -5,9 +5,27 @@ from pygame import *
 from colors import *
 from time import sleep
 
-ROWS = 9
-MAX_COLS = 12
-TILE_SIZE = 64
+ROWS = 22
+MAX_COLS = 40
+TILE_SIZE = 32
+
+#serves to charge the tiles for the level and show them
+class Tiles:
+    def draw(self, level):
+        self.level = level
+        # self.world_data = []
+        # for row in range(ROWS):
+        #     r = [-1] * MAX_COLS
+        #     self.world_data.append(r)
+        with open(f'assets/levels/level{level}_data.csv', newline='') as csvfile:
+            reader = csv.reader(csvfile, delimiter=',')
+            for y, row in enumerate(reader):
+                for x, tile in enumerate(row):
+                    if int(tile) >= 0:
+                        t = pygame.image.load("assets/enemies/ufo_idle.png").convert_alpha()
+                        t.blit(screen, (x * TILE_SIZE,y * TILE_SIZE))
+        
+
 
 # gets the army from the level editor csv
 class Army:
@@ -19,12 +37,13 @@ class Army:
             self.world_data.append(r)
         with open(f'assets/levels/level{level}_data.csv', newline='') as csvfile:
             reader = csv.reader(csvfile, delimiter=',')
-            for y, row in enumerate(reader):
-                for x, tile in enumerate(row):
-                    if int(tile) >= 0:
-                        ufo1 = Character(1, 16 +  x * TILE_SIZE, y * TILE_SIZE, 2)
-                        ufo1.add_animation("assets/enemies/ufo_idle.png", 0, 9, 150, 64, 64, 0)
-                        self.units.append(ufo1)
+            # for y, row in enumerate(reader):
+            #     for x, tile in enumerate(row):
+            #         if int(tile) >= 0:
+            #             screen.blit
+            #             ufo1 = Character(1, 16 +  x * TILE_SIZE, y * TILE_SIZE, 2)
+            #             ufo1.add_animation("assets/enemies/ufo_idle.png", 0, 9, 150, 64, 64, 0)
+            #             self.units.append(ufo1)
 
     def draw(self):
         for i in self.units:
@@ -77,6 +96,10 @@ class Character:
         self.x = x
         self.y = y
         self.speed = speed
+        self.gravity = 5
+        self.jump_height = 40
+        self.v = self.jump_height
+        self.jumping = False
 
     # Sets a new animation speed for the character
     def set_animation_speed(self,new_speed):
@@ -84,12 +107,16 @@ class Character:
 
     # draw the character in the screen
     def draw(self):
-        screen.blit(self.animations[self.animation_index].get_frame(), (self.x, self.y))
-
+        # is going to the right
+        if self.direction == 0:
+            screen.blit(self.animations[self.animation_index].get_frame(), (self.x, self.y))
+        elif self.direction == 1:
+            screen.blit(pygame.transform.flip(self.animations[self.animation_index].get_frame().convert(),True,False), (self.x, self.y))
 
 
     # moves to the left
     def move_left(self):
+        self.direction = 1
         self.x -= self.speed
         self.rect.x = self.x
         self.rect.clamp_ip(screen.get_rect())
@@ -98,6 +125,7 @@ class Character:
 
     # moves to the right
     def move_right(self):
+        self.direction = 0
         self.x += self.speed
         self.rect.x = self.x
         self.rect.clamp_ip(screen.get_rect())
@@ -119,6 +147,16 @@ class Character:
         self.rect.clamp_ip(screen.get_rect())
         if self.y + self.rect.height > screen.get_height():
             self.y = screen.get_height() - self.rect.height
+
+    # jump
+    def jump(self):
+        self.y -= self.v
+        self.v -= self.gravity
+        self.rect.y = self.y
+
+        if self.v < -self.jump_height:
+            self.jumping = False
+            self.v = self.jump_height
 
     # Adds an animation to the list.
     def add_animation(self,image1,start_frame,end_frame,frame_time,width,height,loops):
@@ -169,7 +207,7 @@ class Protagonist(Character):
         return current_time - self.last_shoot >= self.firing_rate
 
     def init_game(self):
-        starship.add_animation("assets/protagonist/starship_idle.png", 0, 4, 200, 50, 68, 0)
+        starship.add_animation("assets/protagonist/pacman1.png", 0, 2, 200, 30, 30, 0)
         starship.set_stats(300, 6)
         starship.move(368, 530)
 
@@ -390,6 +428,7 @@ class Game:
         self.control_panel = ControlPanel(TEAL, TEAL2, self.protagonist.lives, self.protagonist.firing_rate)
         self.enemies = Army(self.level)
         self.patrol = Patrol(self.level)
+        self.tiles = Tiles()
 
 
     # draw elements to the screen
@@ -405,6 +444,7 @@ class Game:
                 self.star_background.update_stars()
             else:
                 screen.blit(pygame.image.load(self.background),(0,0))
+            self.tiles.draw(self.level)
             self.patrol.update()
             self.protagonist.update() #protagonist and his bullets
             for i in self.protagonist.bullets:
@@ -412,7 +452,7 @@ class Game:
                     if i.rect.colliderect(j.rect):
                         j.lives -= i.lives
                         i.lives = 0
-            self.control_panel.draw(self.points, self.level, self.protagonist.lives, self.protagonist.last_shoot)
+            # self.control_panel.draw(self.points, self.level, self.protagonist.lives, self.protagonist.last_shoot)
         elif self.state == 4:
             pass
 
@@ -446,7 +486,9 @@ class Game:
                     sys.exit()
                 if event.type == KEYDOWN:
                     if event.key == K_SPACE:
-                        self.protagonist.shoot()
+                        # self.protagonist.shoot()
+                        if not self.protagonist.jumping:
+                            self.protagonist.jumping = True
 
             keys = pygame.key.get_pressed()
 
@@ -458,15 +500,16 @@ class Game:
             #     self.protagonist.move_up()
             # if keys[K_DOWN]:
             #     self.protagonist.move_down()
-
+            if self.protagonist.jumping:
+                self.protagonist.jump()
 
 
 
 
 FULL_SCREEN_WIDTH = 1280
 FULL_SCREEN_HEIGHT = 720
-SCREEN_WIDTH = 800
-SCREEN_HEIGHT = 600
+SCREEN_WIDTH = 1280
+SCREEN_HEIGHT = 720
 
 BACKGROUND_COLOR = (0,0,0,)
 TRANSPARENT_COLOR = (170,0,170)
@@ -474,17 +517,17 @@ TRANSPARENT_COLOR = (170,0,170)
 pygame.init()
 
 # screen = pygame.display.set_mode((SCREEN_WIDTH,SCREEN_HEIGHT))
-screen = pygame.Surface((800,600))
+screen = pygame.Surface((1280,720))
 big_screen = pygame.display.set_mode((FULL_SCREEN_WIDTH,FULL_SCREEN_HEIGHT))
 big_screen.blit(screen,(0,0))
 pygame.display.set_caption("UFO Attack!")
 
 # Characters
 ufo = Character(1,0,0,5)
-ufo.add_animation("assets/enemies/ufo_idle.png",0,9,150,64,64, 0)
+ufo.add_animation("assets/enemies/ufo_idle.png",0,2,150,12,12, 0)
 
 
-starship = Protagonist(1,0,0,5)
+starship = Protagonist(1,0,0,8)
 starship.init_game()
 
 # Game
